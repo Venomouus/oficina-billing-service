@@ -1,22 +1,31 @@
 # Oficina Billing Service
 
-Microsserviço responsável por orçamentos e pelo fluxo inicial de pagamento.
+Microsservico responsavel por orcamentos e pelo fluxo inicial de pagamento.
 
 ## Stack
 
 - ASP.NET Core 8
-- MongoDB exclusivo do serviço
-- RabbitMQ para integração assíncrona
+- MongoDB exclusivo do servico
+- RabbitMQ para integracao assincrona
 - Swagger/OpenAPI
 
 ## Eventos
 
-- Consome `OS_CREATED` e gera um orçamento.
+- Consome `OS_CREATED` e gera um orcamento.
 - Publica `BUDGET_CREATED`.
-- Publica `BUDGET_APPROVED` após aprovação.
-- Publica `PAYMENT_APPROVED` após confirmação do pagamento.
+- Publica `BUDGET_APPROVED` apos aprovacao.
+- Publica `BUDGET_REJECTED` quando o cliente recusa.
+- Publica `PAYMENT_APPROVED` apos confirmacao do pagamento.
 
-O pagamento atual utiliza um fluxo de demonstração. A integração com o Mercado Pago será adicionada mantendo estes eventos.
+O pagamento atual usa um fluxo de demonstracao. A integracao com o Mercado Pago sera adicionada mantendo estes eventos.
+
+## Endpoints principais
+
+- `GET /api/budgets`
+- `GET /api/budgets/{id}`
+- `POST /api/budgets/{id}/approve`
+- `POST /api/budgets/{id}/reject`
+- `POST /api/budgets/{id}/payment`
 
 ## Executar
 
@@ -24,4 +33,4 @@ O pagamento atual utiliza um fluxo de demonstração. A integração com o Merca
 dotnet run
 ```
 
-Configuração padrão: MongoDB em `localhost:27017` e RabbitMQ em `localhost:5672`.
+Configuracao padrao: MongoDB em `localhost:27017` e RabbitMQ em `localhost:5672`.
