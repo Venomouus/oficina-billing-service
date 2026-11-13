@@ -1,0 +1,56 @@
+name: CI - Billing Service
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test-analyze:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: zulu
+
+      - name: Install SonarScanner
+        shell: pwsh
+        run: dotnet tool update dotnet-sonarscanner --tool-path $env:RUNNER_TEMP\sonar
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Begin SonarCloud analysis
+        shell: pwsh
+        run: $env:RUNNER_TEMP\sonar\dotnet-sonarscanner begin /k:"Venomouus_oficina-billing-service" /o:"venomouus" /d:sonar.token="$env:SONAR_TOKEN"
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test --no-build --no-restore --configuration Release
+
+      - name: End SonarCloud analysis
+        if: always()
+        shell: pwsh
+        run: $env:RUNNER_TEMP\sonar\dotnet-sonarscanner end /d:sonar.token="$env:SONAR_TOKEN"
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Docker build
+        run: docker build --tag oficina-billing-service:${{ github.sha }} .
