@@ -22,7 +22,7 @@ app.MapGet("/api/budgets/{id}", async (string id, IMongoDatabase db) => { var bu
 app.MapPost("/api/budgets/{id}/approve", async (string id, IMongoDatabase db, EventPublisher events) =>
 {
     var collection = db.GetCollection<Budget>("budgets");
-    var budget = await collection.FindOneAndUpdateAsync(x => x.Id == id && x.Status == BudgetStatuses.PendingApproval, Builders<Budget>.Update.Set(x => x.Status, BudgetStatuses.Approved).Set(x => x.UpdatedAt, DateTimeOffset.UtcNow));
+    var budget = await collection.FindOneAndUpdateAsync<Budget>(x => x.Id == id && x.Status == BudgetStatuses.PendingApproval, Builders<Budget>.Update.Set(x => x.Status, BudgetStatuses.Approved).Set(x => x.UpdatedAt, DateTimeOffset.UtcNow), new FindOneAndUpdateOptions<Budget> { ReturnDocument = ReturnDocument.After });
     if (budget is null) return Results.NotFound(new { error = "orcamento inexistente ou fora de aprovacao" });
     await events.PublishAsync("BUDGET_APPROVED", new { orderId = budget.OrderId, budgetId = budget.Id });
     return Results.Ok(budget);
@@ -31,7 +31,7 @@ app.MapPost("/api/budgets/{id}/approve", async (string id, IMongoDatabase db, Ev
 app.MapPost("/api/budgets/{id}/reject", async (string id, RejectBudgetRequest request, IMongoDatabase db, EventPublisher events) =>
 {
     var collection = db.GetCollection<Budget>("budgets");
-    var budget = await collection.FindOneAndUpdateAsync(x => x.Id == id && x.Status == BudgetStatuses.PendingApproval, Builders<Budget>.Update.Set(x => x.Status, BudgetStatuses.Rejected).Set(x => x.RejectionReason, request.Reason).Set(x => x.UpdatedAt, DateTimeOffset.UtcNow));
+    var budget = await collection.FindOneAndUpdateAsync<Budget>(x => x.Id == id && x.Status == BudgetStatuses.PendingApproval, Builders<Budget>.Update.Set(x => x.Status, BudgetStatuses.Rejected).Set(x => x.RejectionReason, request.Reason).Set(x => x.UpdatedAt, DateTimeOffset.UtcNow), new FindOneAndUpdateOptions<Budget> { ReturnDocument = ReturnDocument.After });
     if (budget is null) return Results.NotFound();
     await events.PublishAsync("BUDGET_REJECTED", new { orderId = budget.OrderId, budgetId = budget.Id, reason = request.Reason });
     return Results.Ok(budget);
@@ -40,7 +40,7 @@ app.MapPost("/api/budgets/{id}/reject", async (string id, RejectBudgetRequest re
 app.MapPost("/api/budgets/{id}/payment", async (string id, IMongoDatabase db, EventPublisher events) =>
 {
     var collection = db.GetCollection<Budget>("budgets");
-    var budget = await collection.FindOneAndUpdateAsync(x => x.Id == id && x.Status == BudgetStatuses.Approved, Builders<Budget>.Update.Set(x => x.Status, BudgetStatuses.Paid).Set(x => x.PaymentProvider, "mercado-pago-sandbox").Set(x => x.UpdatedAt, DateTimeOffset.UtcNow));
+    var budget = await collection.FindOneAndUpdateAsync<Budget>(x => x.Id == id && x.Status == BudgetStatuses.Approved, Builders<Budget>.Update.Set(x => x.Status, BudgetStatuses.Paid).Set(x => x.PaymentProvider, "mercado-pago-sandbox").Set(x => x.UpdatedAt, DateTimeOffset.UtcNow), new FindOneAndUpdateOptions<Budget> { ReturnDocument = ReturnDocument.After });
     if (budget is null) return Results.NotFound(new { error = "orcamento inexistente ou nao aprovado" });
     await events.PublishAsync("PAYMENT_APPROVED", new { orderId = budget.OrderId, budgetId = budget.Id, provider = budget.PaymentProvider });
     return Results.Ok(budget);
