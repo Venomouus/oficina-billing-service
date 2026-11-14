@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-test-analyze:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,15 +27,13 @@ jobs:
           distribution: zulu
 
       - name: Install SonarScanner
-        shell: pwsh
-        run: dotnet tool update dotnet-sonarscanner --tool-path $env:RUNNER_TEMP\sonar
+        run: dotnet tool update dotnet-sonarscanner --tool-path "$RUNNER_TEMP/sonar"
 
       - name: Restore
         run: dotnet restore
 
       - name: Begin SonarCloud analysis
-        shell: pwsh
-        run: '& "$env:RUNNER_TEMP\sonar\dotnet-sonarscanner" begin /k:"Venomouus_oficina-billing-service" /o:"venomouus" /d:sonar.token="$env:SONAR_TOKEN"'
+        run: '"$RUNNER_TEMP/sonar/dotnet-sonarscanner" begin /k:"Venomouus_oficina-billing-service" /o:"venomouus" /d:sonar.token="$SONAR_TOKEN"'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
@@ -47,8 +45,7 @@ jobs:
 
       - name: End SonarCloud analysis
         if: always()
-        shell: pwsh
-        run: '& "$env:RUNNER_TEMP\sonar\dotnet-sonarscanner" end /d:sonar.token="$env:SONAR_TOKEN"'
+        run: '"$RUNNER_TEMP/sonar/dotnet-sonarscanner" end /d:sonar.token="$SONAR_TOKEN"'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
