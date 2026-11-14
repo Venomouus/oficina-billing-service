@@ -30,7 +30,7 @@ jobs:
         run: dotnet tool update dotnet-sonarscanner --tool-path "$RUNNER_TEMP/sonar"
 
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore Tests/BillingService.Tests/BillingService.Tests.csproj
 
       - name: Begin SonarCloud analysis
         run: '"$RUNNER_TEMP/sonar/dotnet-sonarscanner" begin /k:"Venomouus_oficina-billing-service" /o:"venomouus" /d:sonar.token="$SONAR_TOKEN"'
