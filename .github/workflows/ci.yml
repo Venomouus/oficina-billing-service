@@ -35,7 +35,7 @@ jobs:
 
       - name: Begin SonarCloud analysis
         shell: pwsh
-        run: $env:RUNNER_TEMP\sonar\dotnet-sonarscanner begin /k:"Venomouus_oficina-billing-service" /o:"venomouus" /d:sonar.token="$env:SONAR_TOKEN"
+        run: '& "$env:RUNNER_TEMP\sonar\dotnet-sonarscanner" begin /k:"Venomouus_oficina-billing-service" /o:"venomouus" /d:sonar.token="$env:SONAR_TOKEN"'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
@@ -48,7 +48,7 @@ jobs:
       - name: End SonarCloud analysis
         if: always()
         shell: pwsh
-        run: $env:RUNNER_TEMP\sonar\dotnet-sonarscanner end /d:sonar.token="$env:SONAR_TOKEN"
+        run: '& "$env:RUNNER_TEMP\sonar\dotnet-sonarscanner" end /d:sonar.token="$env:SONAR_TOKEN"'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
