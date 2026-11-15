@@ -9,6 +9,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.Configure<HostOptions>(options => options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.StopHost);
 builder.Services.AddSingleton(sp => { var section = sp.GetRequiredService<IConfiguration>().GetSection("Mongo"); return new MongoClient(section["ConnectionString"] ?? "mongodb://localhost:27017").GetDatabase(section["Database"] ?? "oficina_billing"); });
 builder.Services.AddSingleton<EventPublisher>();
 builder.Services.AddHttpClient<MercadoPagoClient>();
