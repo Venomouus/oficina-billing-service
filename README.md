@@ -26,6 +26,9 @@ O pagamento atual usa um fluxo de demonstracao. A integracao com o Mercado Pago 
 - `POST /api/budgets/{id}/approve`
 - `POST /api/budgets/{id}/reject`
 - `POST /api/budgets/{id}/payment`
+- `POST /api/budgets/{id}/payment/preference` cria um checkout sandbox do Mercado Pago.
+- `POST /api/budgets/{id}/payment/qr` cria uma order QR dinâmico sandbox e retorna `qrData`.
+- `POST /api/payments/webhook` recebe notificações `payment` e `order`.
 
 ## Executar
 
@@ -34,3 +37,5 @@ dotnet run
 ```
 
 Configuracao padrao: MongoDB em `localhost:27017` e RabbitMQ em `localhost:5672`.
+
+Para testar o Mercado Pago, consulte o guia [TESTING-MERCADO-PAGO.md](TESTING-MERCADO-PAGO.md).

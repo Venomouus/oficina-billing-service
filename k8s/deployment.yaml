@@ -40,6 +40,26 @@ spec:
                 secretKeyRef:
                   name: messaging-secrets
                   key: password
+            - name: MercadoPago__AccessToken
+              valueFrom:
+                secretKeyRef:
+                  name: mercado-pago-secrets
+                  key: access-token
+            - name: MercadoPago__ExternalPosId
+              valueFrom:
+                secretKeyRef:
+                  name: mercado-pago-secrets
+                  key: external-pos-id
+            - name: MercadoPago__WebhookUrl
+              valueFrom:
+                secretKeyRef:
+                  name: mercado-pago-secrets
+                  key: webhook-url
+            - name: MercadoPago__WebhookSecret
+              valueFrom:
+                secretKeyRef:
+                  name: mercado-pago-secrets
+                  key: webhook-secret
           readinessProbe:
             httpGet:
               path: /health
@@ -65,3 +85,15 @@ spec:
     - port: 8082
       targetPort: 8080
   type: ClusterIP
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mercado-pago-secrets
+  namespace: oficina
+type: Opaque
+stringData:
+  access-token: ""
+  external-pos-id: ""
+  webhook-url: ""
+  webhook-secret: ""
