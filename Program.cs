@@ -32,6 +32,15 @@ app.MapPost("/api/budgets/{id}/approve", async (string id, IMongoDatabase db, Ev
     return Results.Ok(budget);
 });
 
+app.MapPatch("/api/budgets/{id}/amount", async (string id, UpdateBudgetAmountRequest request, IMongoDatabase db) =>
+{
+    if (request.Amount <= 0) return Results.BadRequest(new { error = "amount deve ser maior que zero" });
+    var budget = await db.GetCollection<Budget>("budgets").FindOneAndUpdateAsync<Budget>(x => x.Id == id && x.Status == BudgetStatuses.PendingApproval,
+        Builders<Budget>.Update.Set(x => x.Amount, request.Amount).Set(x => x.UpdatedAt, DateTimeOffset.UtcNow),
+        new FindOneAndUpdateOptions<Budget> { ReturnDocument = ReturnDocument.After });
+    return budget is null ? Results.NotFound() : Results.Ok(budget);
+});
+
 app.MapPost("/api/budgets/{id}/reject", async (string id, RejectBudgetRequest request, IMongoDatabase db, EventPublisher events) =>
 {
     var collection = db.GetCollection<Budget>("budgets");
@@ -122,6 +131,7 @@ app.MapPost("/api/payments/webhook", async (HttpRequest request, JsonElement not
 app.Run();
 
 public record RejectBudgetRequest(string Reason);
+public record UpdateBudgetAmountRequest(decimal Amount);
 public static class BudgetStatuses { public const string PendingApproval = "PENDING_APPROVAL"; public const string Approved = "APPROVED"; public const string Rejected = "REJECTED"; public const string Paid = "PAID"; public const string PaymentRejected = "PAYMENT_REJECTED"; }
 public class Budget
 {

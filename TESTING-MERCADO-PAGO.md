@@ -46,8 +46,18 @@ Aguarde o orçamento ser criado pelo RabbitMQ:
 
 ```powershell
 Start-Sleep -Seconds 3
-$budget = (Invoke-RestMethod http://localhost:8082/api/budgets | Where-Object orderId -eq $order.id | Select-Object -First 1)
+  $budgets = Invoke-RestMethod http://localhost:8082/api/budgets
+  $budget = $budgets | Where-Object { $_.orderId -eq $order.id } | Select-Object -First 1
 $budget
+```
+
+Defina um valor positivo antes de aprovar o orçamento:
+
+```powershell
+$budget = Invoke-RestMethod -Method Patch `
+  -Uri "http://localhost:8082/api/budgets/$($budget.id)/amount" `
+  -ContentType 'application/json' `
+  -Body (@{ amount = 150.00 } | ConvertTo-Json)
 ```
 
 ## 3. Aprovar o orçamento

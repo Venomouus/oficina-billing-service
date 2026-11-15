@@ -23,6 +23,7 @@ O pagamento atual usa um fluxo de demonstracao. A integracao com o Mercado Pago 
 
 - `GET /api/budgets`
 - `GET /api/budgets/{id}`
+- `PATCH /api/budgets/{id}/amount`
 - `POST /api/budgets/{id}/approve`
 - `POST /api/budgets/{id}/reject`
 - `POST /api/budgets/{id}/payment`
