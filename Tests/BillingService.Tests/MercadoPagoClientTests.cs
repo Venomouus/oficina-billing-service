@@ -48,6 +48,17 @@ public class MercadoPagoClientTests
         Assert.Equal("BRL", item.GetProperty("currency_id").GetString());
     }
 
+    [Theory]
+    [InlineData("http://example.test/hook")]
+    [InlineData("not-a-url")]
+    public async Task Preference_rejects_insecure_or_invalid_webhook_url(string webhookUrl)
+    {
+        var (client, handler) = Create(webhookUrl: webhookUrl);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => client.CreatePreferenceAsync(Budget()));
+        Assert.Null(handler.Url);
+    }
+
     [Fact]
     public async Task Qr_order_sends_pos_and_idempotency_key_and_reads_payment()
     {

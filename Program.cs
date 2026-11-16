@@ -194,8 +194,8 @@ public sealed class MercadoPagoClient(HttpClient httpClient, IConfiguration conf
         var url = value.Trim();
         while (url.StartsWith("https://https://", StringComparison.OrdinalIgnoreCase))
             url = url["https://".Length..];
-        while (url.StartsWith("http://http://", StringComparison.OrdinalIgnoreCase))
-            url = url["http://".Length..];
+        if (url.Length != 0 && (!Uri.TryCreate(url, UriKind.Absolute, out var parsed) || parsed.Scheme != Uri.UriSchemeHttps))
+            throw new InvalidOperationException("MercadoPago:WebhookUrl deve usar HTTPS.");
         return url;
     }
 
