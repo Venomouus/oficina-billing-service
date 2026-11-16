@@ -41,7 +41,14 @@ jobs:
         run: dotnet build Tests/BillingService.Tests/BillingService.Tests.csproj --no-restore --configuration Release
 
       - name: Test
-        run: dotnet test Tests/BillingService.Tests/BillingService.Tests.csproj --no-build --no-restore --configuration Release --collect:"XPlat Code Coverage"
+        run: pwsh -File Tests/BillingService.Tests/run-coverage.ps1
+
+      - name: Upload coverage evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: billing-service-coverage
+          path: Tests/BillingService.Tests/TestResults/**/coverage.cobertura.xml
 
       - name: End SonarCloud analysis
         if: always()

@@ -19,10 +19,14 @@ No PowerShell, antes de subir o Compose:
 ```powershell
 $env:MERCADO_PAGO_ACCESS_TOKEN = 'APP_USR-seu-token-de-teste'
 $env:MERCADO_PAGO_EXTERNAL_POS_ID = 'STORE001POS001'
-$env:MERCADO_PAGO_WEBHOOK_URL = 'https://SEU-ENDERECO-PUBLICO/api/payments/webhook'
+$env:MERCADO_PAGO_WEBHOOK_URL = 'https://SEU-ENDERECO-NGROK/api/payments/webhook'
 $env:MERCADO_PAGO_WEBHOOK_SECRET = 'sua-assinatura-do-webhook'
 docker compose up --build os-db billing-db rabbitmq os-service billing-service execution-service
 ```
+
+Inicie `ngrok http 8082` e substitua `SEU-ENDERECO-NGROK` pelo domínio HTTPS
+exibido, sem repetir `https://` (exemplo: `https://abc123.ngrok-free.dev`).
+Assim, a URL completa termina em `/api/payments/webhook`.
 
 Para receber webhook localmente, use um túnel HTTPS, como ngrok, apontando para
 a porta `8082`. O endpoint público deve terminar em
