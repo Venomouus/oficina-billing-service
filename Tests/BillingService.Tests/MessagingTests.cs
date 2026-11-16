@@ -29,6 +29,10 @@ public sealed class MessagingTests(MongoFixture mongo)
         var settings = new ConnectionFactory { HostName = rabbit.Hostname, Port = rabbit.GetMappedPublicPort(5672), UserName = "test", Password = "test" };
         using var connection = settings.CreateConnection();
         using var channel = connection.CreateModel();
+        // O publicador da OS tambem declara a fila antes de emitir OS_CREATED.
+        channel.ExchangeDeclare("oficina.events", ExchangeType.Topic, durable: true);
+        channel.QueueDeclare("billing-service-events", durable: true, exclusive: false, autoDelete: false);
+        channel.QueueBind("billing-service-events", "oficina.events", "OS_CREATED");
         var orderId = Guid.NewGuid();
         var body = JsonSerializer.Serialize(new { payload = new { orderId, description = "Transmission repair" } });
         channel.BasicPublish("oficina.events", "OS_CREATED", null, Encoding.UTF8.GetBytes(body));
@@ -36,6 +40,8 @@ public sealed class MessagingTests(MongoFixture mongo)
         channel.BasicPublish("oficina.events", "OS_CREATED", null, Encoding.UTF8.GetBytes(body));
         await Task.Delay(300);
         Assert.Equal(1, await budgets.CountDocumentsAsync(x => x.OrderId == orderId));
+        await Assert.ThrowsAsync<MongoWriteException>(() => budgets.InsertOneAsync(
+            new Budget { OrderId = orderId, Description = "duplicate" }));
 
         using var worker = new BillingOutboxWorker(database, new EventPublisher(config), NullLogger<BillingOutboxWorker>.Instance);
         await worker.StartAsync(CancellationToken.None);
