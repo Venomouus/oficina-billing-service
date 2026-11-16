@@ -16,5 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../BillingService.csproj" />
+    <Using Include="Oficina.Billing" />
   </ItemGroup>
 </Project>

@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 $project = Join-Path $PSScriptRoot 'BillingService.Tests.csproj'
 $results = Join-Path $PSScriptRoot ('TestResults/coverage-' + [Guid]::NewGuid().ToString('N'))
 
-dotnet test $project --configuration Release --collect 'XPlat Code Coverage' --results-directory $results -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+dotnet test $project --configuration Release --collect 'XPlat Code Coverage' --results-directory $results -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura,opencover
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 $reports = @(Get-ChildItem -LiteralPath $results -Directory | ForEach-Object {

@@ -7,6 +7,7 @@ using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using Oficina.Billing;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<HostOptions>(options => options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.StopHost);
@@ -144,6 +145,8 @@ app.MapPost("/api/payments/webhook", async (HttpRequest request, JsonElement not
 
 app.Run();
 
+namespace Oficina.Billing
+{
 public record RejectBudgetRequest(string Reason);
 public record UpdateBudgetAmountRequest(decimal Amount);
 public static class BudgetStatuses { public const string PendingApproval = "PENDING_APPROVAL"; public const string Approved = "APPROVED"; public const string Rejected = "REJECTED"; public const string Paid = "PAID"; public const string PaymentRejected = "PAYMENT_REJECTED"; }
@@ -332,12 +335,12 @@ public sealed class OsCreatedConsumer(IConfiguration configuration, IMongoDataba
         {
             try
             {
-                using var document = JsonDocument.Parse(args.Body.ToArray()); var payload = document.RootElement.GetProperty("payload"); var orderId = payload.GetProperty("orderId").GetGuid(); var description = payload.GetProperty("description").GetString() ?? "Servico mecanico"; var collection = db.GetCollection<Budget>("budgets"); var existing = await collection.Find(x => x.OrderId == orderId).FirstOrDefaultAsync();
+                using var document = JsonDocument.Parse(args.Body.ToArray()); var payload = document.RootElement.GetProperty("payload"); var orderId = payload.GetProperty("orderId").GetGuid(); var description = payload.GetProperty("description").GetString() ?? "Servico mecanico"; var collection = db.GetCollection<Budget>("budgets"); var existing = await collection.Find(x => x.OrderId == orderId).FirstOrDefaultAsync(stoppingToken);
                 if (existing is null)
                 {
                     var budget = new Budget { OrderId = orderId, Description = description, Amount = 0 };
                     budget.PendingEvents.Add(SagaOutboxEvent.Create("BUDGET_CREATED", new { orderId, budgetId = budget.Id, description }));
-                    await collection.InsertOneAsync(budget);
+                    await collection.InsertOneAsync(budget, cancellationToken: stoppingToken);
                 }
                 channel.BasicAck(args.DeliveryTag, false);
             }
@@ -346,6 +349,8 @@ public sealed class OsCreatedConsumer(IConfiguration configuration, IMongoDataba
         };
         channel.BasicConsume(queue, false, consumer); return Task.CompletedTask;
     }
+}
+
 }
 
 public partial class Program { }

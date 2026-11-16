@@ -33,7 +33,7 @@ jobs:
         run: dotnet restore Tests/BillingService.Tests/BillingService.Tests.csproj
 
       - name: Begin SonarCloud analysis
-        run: '"$RUNNER_TEMP/sonar/dotnet-sonarscanner" begin /k:"Venomouus_oficina-billing-service" /o:"venomouus" /d:sonar.token="$SONAR_TOKEN"'
+        run: '"$RUNNER_TEMP/sonar/dotnet-sonarscanner" begin /k:"Venomouus_oficina-billing-service" /o:"venomouus" /d:sonar.token="$SONAR_TOKEN" /d:sonar.cs.opencover.reportsPaths="Tests/BillingService.Tests/TestResults/**/coverage.opencover.xml"'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
