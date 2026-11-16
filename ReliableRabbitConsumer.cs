@@ -1,4 +1,5 @@
 using System.Text;
+using System.Diagnostics;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
@@ -54,13 +55,19 @@ public static class ReliableRabbitConsumer
                 var consumer = new AsyncEventingBasicConsumer(channel);
                 consumer.Received += async (_, delivery) =>
                 {
+                    using var activity = Observability.Activities.StartActivity("saga.consume", ActivityKind.Consumer);
+                    activity?.SetTag("messaging.destination.name", queue);
+                    activity?.SetTag("saga.event.type", delivery.RoutingKey);
                     try
                     {
                         await process(delivery.Body);
+                        Observability.Consumed.Add(1, new KeyValuePair<string, object?>("event.type", delivery.RoutingKey));
                         channel.BasicAck(delivery.DeliveryTag, false);
                     }
                     catch (Exception exception)
                     {
+                        Observability.Failed.Add(1, new KeyValuePair<string, object?>("event.type", delivery.RoutingKey));
+                        activity?.SetStatus(ActivityStatusCode.Error, exception.Message);
                         try
                         {
                             var malformed = exception is System.Text.Json.JsonException or KeyNotFoundException;

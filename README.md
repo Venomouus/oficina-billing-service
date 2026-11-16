@@ -69,3 +69,18 @@ O relatorio Cobertura tambem fica disponivel no artefato `billing-service-covera
 O [painel SonarCloud do PR](https://sonarcloud.io/dashboard?id=Venomouus_oficina-billing-service&pullRequest=1)
 mostra o quality gate e a cobertura de codigo novo; o script local/CI exige
 separadamente pelo menos 80% de linhas da assembly completa.
+
+# CI/CD e observabilidade da Fase 4
+
+O PR executa testes/cobertura, SonarCloud com Quality Gate bloqueante e build
+Docker. Em `main`, `publish-deploy` publica
+`ghcr.io/venomouus/oficina-billing-service:<SHA>` e aguarda o rollout no
+Kubernetes. Configure `KUBE_CONFIG_B64` no GitHub e, no namespace `oficina`,
+os Secrets `messaging-secrets`, `billing-service-secrets` (chave
+`database-connection`) e `mercado-pago-secrets`. O manifesto nao inclui
+credenciais reais. A imagem GHCR deve ser publica ou ter permissao de pull no
+cluster.
+
+Os logs JSON vao para stdout. Defina `OTEL_EXPORTER_OTLP_ENDPOINT` para enviar
+traces, metricas HTTP/Saga e logs por OTLP gRPC ao coletor da Fase 3. No
+Kubernetes, configure opcionalmente `observability-config/otlp-endpoint`.

@@ -1,4 +1,5 @@
 using System.Text;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Security.Cryptography;
 using System.Text.Json.Serialization;
@@ -10,6 +11,7 @@ using RabbitMQ.Client.Events;
 using Oficina.Billing;
 
 var builder = WebApplication.CreateBuilder(args);
+Observability.Configure(builder);
 builder.Services.Configure<HostOptions>(options => options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.StopHost);
 builder.Services.AddSingleton(sp => { var section = sp.GetRequiredService<IConfiguration>().GetSection("Mongo"); return new MongoClient(section["ConnectionString"] ?? "mongodb://localhost:27017").GetDatabase(section["Database"] ?? "oficina_billing"); });
 builder.Services.AddSingleton<EventPublisher>();
@@ -294,11 +296,16 @@ public sealed class EventPublisher(IConfiguration configuration)
 {
     public Task PublishAsync(string type, string body)
     {
+        using var activity = Observability.Activities.StartActivity("saga.publish", ActivityKind.Producer);
+        activity?.SetTag("messaging.destination.name", "oficina.events");
+        activity?.SetTag("saga.event.type", type);
         var settings = configuration.GetSection("RabbitMq"); var factory = new ConnectionFactory { HostName = settings["Host"] ?? "localhost", Port = settings.GetValue("Port", 5672), UserName = settings["User"] ?? "oficina", Password = settings["Password"] ?? "oficina" }; using var connection = factory.CreateConnection(); using var channel = connection.CreateModel(); channel.ExchangeDeclare("oficina.events", ExchangeType.Topic, durable: true);
         channel.QueueDeclare("os-service-events", true, false, false);
         foreach (var key in new[] { "BUDGET_CREATED", "BUDGET_REJECTED", "PAYMENT_APPROVED", "PAYMENT_REJECTED", "EXECUTION_FINISHED", "EXECUTION_FAILED" }) channel.QueueBind("os-service-events", "oficina.events", key);
         channel.ConfirmSelect(); var properties = channel.CreateBasicProperties(); properties.Persistent = true;
-        channel.BasicPublish("oficina.events", type, properties, Encoding.UTF8.GetBytes(body)); channel.WaitForConfirmsOrDie(TimeSpan.FromSeconds(5)); return Task.CompletedTask;
+        channel.BasicPublish("oficina.events", type, properties, Encoding.UTF8.GetBytes(body)); channel.WaitForConfirmsOrDie(TimeSpan.FromSeconds(5));
+        Observability.Published.Add(1, new KeyValuePair<string, object?>("event.type", type));
+        return Task.CompletedTask;
     }
 }
 

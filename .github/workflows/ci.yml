@@ -33,7 +33,7 @@ jobs:
         run: dotnet restore Tests/BillingService.Tests/BillingService.Tests.csproj
 
       - name: Begin SonarCloud analysis
-        run: '"$RUNNER_TEMP/sonar/dotnet-sonarscanner" begin /k:"Venomouus_oficina-billing-service" /o:"venomouus" /d:sonar.token="$SONAR_TOKEN" /d:sonar.cs.opencover.reportsPaths="Tests/BillingService.Tests/TestResults/**/coverage.opencover.xml"'
+        run: '"$RUNNER_TEMP/sonar/dotnet-sonarscanner" begin /k:"Venomouus_oficina-billing-service" /o:"venomouus" /d:sonar.token="$SONAR_TOKEN" /d:sonar.cs.opencover.reportsPaths="Tests/BillingService.Tests/TestResults/**/coverage.opencover.xml" /d:sonar.qualitygate.wait=true'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
@@ -58,3 +58,35 @@ jobs:
 
       - name: Docker build
         run: docker build --tag oficina-billing-service:${{ github.sha }} .
+
+  publish-deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build-test-analyze
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to GHCR
+        run: echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push immutable image
+        run: |
+          docker build -t ghcr.io/venomouus/oficina-billing-service:${{ github.sha }} -t ghcr.io/venomouus/oficina-billing-service:latest .
+          docker push ghcr.io/venomouus/oficina-billing-service:${{ github.sha }}
+          docker push ghcr.io/venomouus/oficina-billing-service:latest
+      - name: Deploy to Kubernetes
+        env:
+          KUBE_CONFIG_B64: ${{ secrets.KUBE_CONFIG_B64 }}
+        run: |
+          test -n "$KUBE_CONFIG_B64" || { echo 'Configure KUBE_CONFIG_B64 no repositorio'; exit 1; }
+          printf '%s' "$KUBE_CONFIG_B64" | base64 -d > "$RUNNER_TEMP/kubeconfig"
+          chmod 600 "$RUNNER_TEMP/kubeconfig"
+          export KUBECONFIG="$RUNNER_TEMP/kubeconfig"
+          kubectl get namespace oficina
+          kubectl -n oficina get secret messaging-secrets billing-service-secrets mercado-pago-secrets
+          kubectl -n oficina apply -f k8s/deployment.yaml
+          kubectl -n oficina set image deployment/billing-service billing-service=ghcr.io/venomouus/oficina-billing-service:${{ github.sha }}
+          kubectl -n oficina rollout status deployment/billing-service --timeout=180s
