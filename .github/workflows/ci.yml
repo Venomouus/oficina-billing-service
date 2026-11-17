@@ -68,12 +68,12 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v6
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6
         with:
           role-to-assume: arn:aws:iam::639793186952:role/oficina-fase4-lab-github-deploy
           aws-region: sa-east-1
           allowed-account-ids: '639793186952'
-      - uses: azure/setup-kubectl@v4
+      - uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4
       - name: Build and push immutable image
         run: |
           IMAGE=639793186952.dkr.ecr.sa-east-1.amazonaws.com/oficina-fase4-lab/billing-service:${{ github.sha }}
