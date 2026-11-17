@@ -13,6 +13,7 @@ spec:
       labels:
         app: billing-service
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: billing-service
           image: ghcr.io/venomouus/oficina-billing-service:latest
@@ -20,8 +21,6 @@ spec:
           ports:
             - containerPort: 8080
           env:
-            - name: ASPNETCORE_URLS
-              value: http://+:8080
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               valueFrom:
                 configMapKeyRef:
