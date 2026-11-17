@@ -65,28 +65,26 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
-      - name: Login to GHCR
-        run: echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::639793186952:role/oficina-fase4-lab-github-deploy
+          aws-region: sa-east-1
+          allowed-account-ids: '639793186952'
+      - uses: azure/setup-kubectl@v4
       - name: Build and push immutable image
         run: |
-          docker build -t ghcr.io/venomouus/oficina-billing-service:${{ github.sha }} -t ghcr.io/venomouus/oficina-billing-service:latest .
-          docker push ghcr.io/venomouus/oficina-billing-service:${{ github.sha }}
-          docker push ghcr.io/venomouus/oficina-billing-service:latest
+          IMAGE=639793186952.dkr.ecr.sa-east-1.amazonaws.com/oficina-fase4-lab/billing-service:${{ github.sha }}
+          if ! aws ecr describe-images --repository-name oficina-fase4-lab/billing-service --image-ids imageTag=${{ github.sha }} >/dev/null 2>&1; then
+            aws ecr get-login-password --region sa-east-1 | docker login --username AWS --password-stdin 639793186952.dkr.ecr.sa-east-1.amazonaws.com
+            docker build -t "$IMAGE" .
+            docker push "$IMAGE"
+          fi
       - name: Deploy to Kubernetes
-        env:
-          KUBE_CONFIG_B64: ${{ secrets.KUBE_CONFIG_B64 }}
         run: |
-          test -n "$KUBE_CONFIG_B64" || { echo 'Configure KUBE_CONFIG_B64 no repositorio'; exit 1; }
-          printf '%s' "$KUBE_CONFIG_B64" | base64 -d > "$RUNNER_TEMP/kubeconfig"
-          chmod 600 "$RUNNER_TEMP/kubeconfig"
-          export KUBECONFIG="$RUNNER_TEMP/kubeconfig"
-          kubectl get namespace oficina
-          kubectl -n oficina get secret messaging-secrets billing-service-secrets mercado-pago-secrets
-          kubectl -n oficina apply -f k8s/deployment.yaml
-          kubectl -n oficina set image deployment/billing-service billing-service=ghcr.io/venomouus/oficina-billing-service:${{ github.sha }}
+          aws eks update-kubeconfig --name oficina-fase4-lab --region sa-east-1
+          IMAGE=639793186952.dkr.ecr.sa-east-1.amazonaws.com/oficina-fase4-lab/billing-service:${{ github.sha }}
+          sed "s#ghcr.io/venomouus/oficina-billing-service:latest#$IMAGE#" k8s/deployment.yaml | kubectl -n oficina apply -f -
           kubectl -n oficina rollout status deployment/billing-service --timeout=180s
