@@ -15,15 +15,24 @@ spec:
     spec:
       containers:
         - name: billing-service
-          image: oficina-billing-service:local
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/venomouus/oficina-billing-service:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           env:
             - name: ASPNETCORE_URLS
               value: http://+:8080
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: observability-config
+                  key: otlp-endpoint
+                  optional: true
             - name: Mongo__ConnectionString
-              value: mongodb://billing-db:27017
+              valueFrom:
+                secretKeyRef:
+                  name: billing-service-secrets
+                  key: database-connection
             - name: Mongo__Database
               value: oficina_billing
             - name: RabbitMq__Host
@@ -72,6 +81,12 @@ spec:
               port: 8080
             initialDelaySeconds: 30
             periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
 ---
 apiVersion: v1
 kind: Service
@@ -85,15 +100,3 @@ spec:
     - port: 8082
       targetPort: 8080
   type: ClusterIP
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: mercado-pago-secrets
-  namespace: oficina
-type: Opaque
-stringData:
-  access-token: ""
-  external-pos-id: ""
-  webhook-url: ""
-  webhook-secret: ""
